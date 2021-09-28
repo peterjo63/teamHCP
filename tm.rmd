@@ -1,0 +1,103 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+# installing the package
+install.packages("tm")
+library(tm)
+
+#create corpus
+docs <- Corpus(DirSource('/Users/peter/OneDrive/Mason/DAEN 690/tm'))
+inspect(docs)
+
+writeLines(as.character(docs[[1]]))
+
+#Start preprocessing
+toSpace <- content_transformer(function(x, pattern) { return (gsub(pattern, " ", x))})
+
+docs <- tm_map(docs, toSpace, "-")
+docs <- tm_map(docs, toSpace, ":")
+docs <- tm_map(docs, toSpace, "'")
+docs <- tm_map(docs, toSpace, " -")
+
+writeLines(as.character(docs[[1]]))
+
+# Remove punctuation
+docs <- tm_map(docs, removePunctuation)
+
+# Transform characters to lower case
+docs <- tm_map(docs, content_transformer(tolower))
+docs
+
+# Strip digits
+docs <- tm_map(docs, removeNumbers)
+
+#remove stopwords from a standard stopword list
+docs <- tm_map(docs, removeWords, stopwords("english"))
+
+# strip whitespace
+docs <- tm_map(docs, stripWhitespace)
+
+#inspect document
+writeLines(as.character(docs[[1]]))
+
+# Stemming
+#install.packages("SnowballC")
+#library(SnowballC)
+
+#stem document
+#docs <- tm_map(docs, stemDocument)
+
+#inspect document
+#writeLines(as.character(docs[[1]]))
+
+#some clean up
+#docs <- tm_map(docs, content_transformer(gsub), pattern = "xxx", replacement = "yyy")
+
+#Create document term matrix
+dtm <- DocumentTermMatrix(docs)
+dtm
+
+as.matrix(dtm)
+
+#collapse matrix by summing over columns
+freq <- colSums(as.matrix(dtm))
+
+#length should be the total number of terms
+length(freq)
+
+#create sort order
+ord <- order(freq, decreasing=TRUE)
+
+#Inspect most frequently increasing term
+freq[head(ord)]
+freq[tail(ord)]
+
+#remove very frequent and very rare words
+#dtmr <- DocumentTermMatrix(docs, control=list(wordLengths=c(4, 20), bounds=list(global=c(3, 27))))
+
+#freqr <- colSums(as.matrix(dtmr))
+#length(freqr)
+
+#list the most frequent terms
+findFreqTerms(dtm, lowfreq=40)
+
+#correlation
+findAssocs(x=dtm, terms = c("attacks", "cyber"), corlimit=0)
+findAssocs(dtm, c("cyber","networks"), .05)
+
+#histogram
+wf=data.frame(term=names(freq), occurrences=freq)
+library(ggplot2)
+p <- ggplot(subset(wf, freq>100), aes(term, occurrences))
+p <- p + geom_bar(stat="identity")
+p <- p + theme(axis.text.x=element_text(angle=45, hjust=1))
+p
+
+#wordcloud
+install.packages("wordcloud")
+library(wordcloud)
+set.seed(42)
+wordcloud(names(freq),freq, min.freq=100)
+
